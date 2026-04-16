@@ -7,13 +7,13 @@ DebugFrame:SetPoint("CENTER")
 DebugFrame:SetMovable(true)
 DebugFrame:EnableMouse(true)
 DebugFrame:RegisterForDrag("LeftButton")
-DebugFrame:SetScript("OnDragStart", DebugFrame.StartMoving)
-DebugFrame:SetScript("OnDragStop", DebugFrame.StopMovingOrSizing)
+DebugFrame:SetScript("OnDragStart", function() DebugFrame:StartMoving() end)
+DebugFrame:SetScript("OnDragStop", function() DebugFrame:StopMovingOrSizing() end)
 DebugFrame:Hide()
 
 DebugFrame.title = DebugFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
 DebugFrame.title:SetPoint("CENTER", DebugFrame.TitleBg, "CENTER", 0, 0)
-DebugFrame.title:SetText("[新兵增强]集合石原始数据")
+DebugFrame.title:SetText("新兵增强 - 集合石原始数据")
 
 DebugFrame:SetResizable(true)
 if DebugFrame.SetResizeBounds then
@@ -59,6 +59,16 @@ local function ShowCopyFrame(text)
     CopyEditBox:SetFocus()
 end
 
+local DbPage = CreateFrame("Frame", nil, DebugFrame)
+DbPage:SetAllPoints()
+
+local LogPage = CreateFrame("Frame", nil, DebugFrame)
+LogPage:SetAllPoints()
+LogPage:Hide()
+
+DebugFrame.DbPage = DbPage
+DebugFrame.LogPage = LogPage
+
 local function CreateTab(id, text)
     local tab = CreateFrame("Button", "$parentTab"..id, DebugFrame, "UIPanelButtonTemplate")
     tab:SetID(id)
@@ -69,34 +79,31 @@ local function CreateTab(id, text)
         DebugFrame.tab2:Enable()
         self:Disable()
         if self:GetID() == 1 then
-            DebugFrame.LogPage:Show()
-            DebugFrame.DbPage:Hide()
-        else
-            DebugFrame.LogPage:Hide()
             DebugFrame.DbPage:Show()
-            DebugFrame:UpdateDB(true)
+            DebugFrame.LogPage:Hide()
+            if DebugFrame.UpdateDB then DebugFrame:UpdateDB(true) end
+        else
+            DebugFrame.DbPage:Hide()
+            DebugFrame.LogPage:Show()
         end
     end)
     return tab
 end
 
-DebugFrame.tab1 = CreateTab(1, "实时日志")
-DebugFrame.tab2 = CreateTab(2, "内存数据库")
+DebugFrame.tab1 = CreateTab(1, "内存数据库")
+DebugFrame.tab2 = CreateTab(2, "实时日志")
 DebugFrame.tab1:SetPoint("TOPLEFT", DebugFrame, "TOPLEFT", 15, -30)
 DebugFrame.tab2:SetPoint("LEFT", DebugFrame.tab1, "RIGHT", 5, 0)
 DebugFrame.tab1:Disable()
 
-local LogPage = CreateFrame("Frame", nil, DebugFrame)
-LogPage:SetAllPoints()
-DebugFrame.LogPage = LogPage
-
-local LogSearch = CreateFrame("EditBox", "MSNDebugLogSearch", LogPage, "SearchBoxTemplate")
-LogSearch:SetPoint("TOPLEFT", 20, -65)
-LogSearch:SetSize(150, 20)
-LogSearch:SetAutoFocus(false)
+local DbSearch = CreateFrame("EditBox", "MSNDebugDbSearch", DbPage, "SearchBoxTemplate")
+DbSearch:SetPoint("TOPLEFT", 20, -65)
+DbSearch:SetSize(150, 20)
+DbSearch:SetAutoFocus(false)
+DbSearch:SetScript("OnTextChanged", function() DebugFrame:UpdateDB(true) end)
 
 local function CreateFilterCB(name, label, anchor, xOffset, defaultChecked, parent)
-    local cb = CreateFrame("CheckButton", name, parent or LogPage, "UICheckButtonTemplate")
+    local cb = CreateFrame("CheckButton", name, parent, "UICheckButtonTemplate")
     cb:SetSize(24, 24)
     cb:SetPoint("LEFT", anchor, "RIGHT", xOffset, 0)
     _G[name.."Text"]:SetText(label)
@@ -105,9 +112,103 @@ local function CreateFilterCB(name, label, anchor, xOffset, defaultChecked, pare
     return cb
 end
 
-local cbQueue = CreateFilterCB("MSNCBQueue", "队列", LogSearch, 10, false)
-local cbSend  = CreateFilterCB("MSNCBSend", "发包", cbQueue, 40, true)
-local cbRecv  = CreateFilterCB("MSNCBRecv", "收包", cbSend, 40, true)
+local cbDbNewbie = CreateFilterCB("MSNCBDbNewbie", "新兵", DbSearch, 10, true, DbPage)
+local cbDbOldbie = CreateFilterCB("MSNCBDbOldbie", "老兵", cbDbNewbie, 40, true, DbPage)
+cbDbNewbie:SetScript("OnClick", function() DebugFrame:UpdateDB(true) end)
+cbDbOldbie:SetScript("OnClick", function() DebugFrame:UpdateDB(true) end)
+
+local DbCopyBtn = CreateFrame("Button", nil, DbPage, "UIPanelButtonTemplate")
+DbCopyBtn:SetSize(80, 22)
+DbCopyBtn:SetPoint("TOPRIGHT", -30, -65)
+DbCopyBtn:SetText("复制列表")
+
+local DbScroll = CreateFrame("ScrollFrame", "MeetingStoneNewbieDBScroll", DbPage, "UIPanelScrollFrameTemplate")
+DbScroll:SetPoint("TOPLEFT", 15, -95)
+DbScroll:SetPoint("BOTTOMRIGHT", -35, 15)
+
+local DbContent = CreateFrame("Frame", nil, DbScroll)
+DbContent:SetSize(500, 1)
+DbScroll:SetScrollChild(DbContent)
+
+local dbRows = {}
+local currentSortedDb = {}
+
+function DebugFrame:UpdateDB(forceScrollBottom)
+    for _, row in ipairs(dbRows) do row:Hide() end
+    currentSortedDb = {}
+    
+    local data = MEETINGSTONE_UI_DB and MEETINGSTONE_UI_DB.global and MEETINGSTONE_UI_DB.global.LocomotiveData
+    if not data then return end
+    
+    local query = (DbSearch:GetText() or ""):lower()
+    for name, info in pairs(data) do
+        local matchFilter = (info.isNewbie and cbDbNewbie:GetChecked()) or (not info.isNewbie and cbDbOldbie:GetChecked())
+        local matchSearch = (query == "" or name:lower():find(query, 1, true))
+        
+        if matchFilter and matchSearch then
+            local sortTime = info.medalTime or (info.newbieExpireTime and (info.newbieExpireTime - 18000)) or 0
+            table.insert(currentSortedDb, {name = name, time = sortTime, info = info})
+        end
+    end
+    
+    table.sort(currentSortedDb, function(a, b)
+        if a.time == b.time then return a.name < b.name end
+        return a.time < b.time 
+    end)
+
+    local i = 0
+    for _, item in ipairs(currentSortedDb) do
+        i = i + 1
+        if not dbRows[i] then
+            dbRows[i] = DbContent:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+            dbRows[i]:SetJustifyH("LEFT")
+        end
+        
+        local row = dbRows[i]
+        row:SetPoint("TOPLEFT", 5, -(i-1)*16)
+        
+        local statusColor = item.info.isNewbie and "|cff00ff00[新兵]|r" or "|cff888888[老兵]|r"
+        local timeStr = item.time > 0 and date("%m-%d %H:%M:%S", item.time) or "未知时间"
+        local expireText = ""
+        if item.info.isNewbie and item.info.newbieExpireTime then
+            expireText = string.format(" |cffffaa00(余%d分)|r", math.max(0, math.floor((item.info.newbieExpireTime - time())/60)))
+        end
+        
+        row:SetText(string.format("|cff888888%2d. [%s]|r %s |cffffffff%s|r%s", 
+            i, timeStr, statusColor, item.name, expireText))
+        row:Show()
+    end
+    
+    DbContent:SetHeight(math.max(1, i * 16))
+    
+    if forceScrollBottom then
+        C_Timer.After(0.01, function()
+            local maxScroll = math.max(0, DbContent:GetHeight() - DbScroll:GetHeight())
+            DbScroll:SetVerticalScroll(maxScroll)
+        end)
+    end
+end
+
+DbCopyBtn:SetScript("OnClick", function()
+    local lines = {}
+    for i, item in ipairs(currentSortedDb) do
+        local status = item.info.isNewbie and "[新兵]" or "[老兵]"
+        local timeStr = item.time > 0 and date("%m-%d %H:%M:%S", item.time) or "未知时间"
+        local expire = item.info.isNewbie and string.format(" (余%d分)", math.max(0, math.floor((item.info.newbieExpireTime - time())/60))) or ""
+        table.insert(lines, string.format("%d. [%s] %s %s%s", i, timeStr, status, item.name, expire))
+    end
+    if #lines == 0 then table.insert(lines, "无匹配的数据库记录。") end
+    ShowCopyFrame(table.concat(lines, "\n"))
+end)
+
+local LogSearch = CreateFrame("EditBox", "MSNDebugLogSearch", LogPage, "SearchBoxTemplate")
+LogSearch:SetPoint("TOPLEFT", 20, -65)
+LogSearch:SetSize(150, 20)
+LogSearch:SetAutoFocus(false)
+
+local cbQueue = CreateFilterCB("MSNCBQueue", "队列", LogSearch, 10, false, LogPage)
+local cbSend  = CreateFilterCB("MSNCBSend", "发包", cbQueue, 40, true, LogPage)
+local cbRecv  = CreateFilterCB("MSNCBRecv", "收包", cbSend, 40, true, LogPage)
 
 local LogCopyBtn = CreateFrame("Button", nil, LogPage, "UIPanelButtonTemplate")
 LogCopyBtn:SetSize(80, 22)
@@ -191,6 +292,7 @@ LogCopyBtn:SetScript("OnClick", function()
             table.insert(lines, logObj.raw)
         end
     end
+    if #lines == 0 then table.insert(lines, "无匹配的日志数据。") end
     ShowCopyFrame(table.concat(lines, "\n"))
 end)
 
@@ -199,107 +301,6 @@ LogClearBtn:SetScript("OnClick", function()
     logBuffer = {}
     ScrollBar:SetMinMaxValues(0, 0)
     ScrollBar:SetValue(0)
-end)
-
-local DbPage = CreateFrame("Frame", nil, DebugFrame)
-DbPage:SetAllPoints()
-DbPage:Hide()
-DebugFrame.DbPage = DbPage
-
-local DbSearch = CreateFrame("EditBox", "MSNDebugDbSearch", DbPage, "SearchBoxTemplate")
-DbSearch:SetPoint("TOPLEFT", 20, -65)
-DbSearch:SetSize(150, 20)
-DbSearch:SetAutoFocus(false)
-DbSearch:SetScript("OnTextChanged", function() DebugFrame:UpdateDB(true) end)
-
-local cbDbNewbie = CreateFilterCB("MSNCBDbNewbie", "新兵", DbSearch, 10, true, DbPage)
-local cbDbOldbie = CreateFilterCB("MSNCBDbOldbie", "老兵", cbDbNewbie, 40, true, DbPage)
-cbDbNewbie:SetScript("OnClick", function() DebugFrame:UpdateDB(true) end)
-cbDbOldbie:SetScript("OnClick", function() DebugFrame:UpdateDB(true) end)
-
-local DbCopyBtn = CreateFrame("Button", nil, DbPage, "UIPanelButtonTemplate")
-DbCopyBtn:SetSize(80, 22)
-DbCopyBtn:SetPoint("TOPRIGHT", -30, -65)
-DbCopyBtn:SetText("复制列表")
-
-local DbScroll = CreateFrame("ScrollFrame", "MeetingStoneNewbieDBScroll", DbPage, "UIPanelScrollFrameTemplate")
-DbScroll:SetPoint("TOPLEFT", 15, -95)
-DbScroll:SetPoint("BOTTOMRIGHT", -35, 15)
-
-local DbContent = CreateFrame("Frame", nil, DbScroll)
-DbContent:SetSize(500, 1)
-DbScroll:SetScrollChild(DbContent)
-
-local dbRows = {}
-local currentSortedDb = {}
-
-function DebugFrame:UpdateDB(forceScrollBottom)
-    for _, row in ipairs(dbRows) do row:Hide() end
-    currentSortedDb = {}
-    
-    local data = MEETINGSTONE_UI_DB and MEETINGSTONE_UI_DB.global and MEETINGSTONE_UI_DB.global.LocomotiveData
-    if not data then return end
-    
-    local query = (DbSearch:GetText() or ""):lower()
-    for name, info in pairs(data) do
-        local matchFilter = (info.isNewbie and cbDbNewbie:GetChecked()) or (not info.isNewbie and cbDbOldbie:GetChecked())
-        local matchSearch = (query == "" or name:lower():find(query, 1, true))
-        
-        if matchFilter and matchSearch then
-            local sortTime = info.medalTime or (info.newbieExpireTime and (info.newbieExpireTime - 18000)) or 0
-            table.insert(currentSortedDb, {name = name, time = sortTime, info = info})
-        end
-    end
-    
-    table.sort(currentSortedDb, function(a, b)
-        if a.time == b.time then return a.name < b.name end
-        return a.time < b.time 
-    end)
-
-    local i = 0
-    for _, item in ipairs(currentSortedDb) do
-        i = i + 1
-        if not dbRows[i] then
-            dbRows[i] = DbContent:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
-            dbRows[i]:SetJustifyH("LEFT")
-        end
-        
-        local row = dbRows[i]
-        row:SetPoint("TOPLEFT", 5, -(i-1)*16)
-        
-        local statusColor = item.info.isNewbie and "|cff00ff00[新兵]|r" or "|cff888888[老兵]|r"
-        local timeStr = item.time > 0 and date("%m-%d %H:%M:%S", item.time) or "未知时间"
-        local expireText = ""
-        if item.info.isNewbie and item.info.newbieExpireTime then
-            expireText = string.format(" |cffffaa00(余%d分)|r", math.max(0, math.floor((item.info.newbieExpireTime - time())/60)))
-        end
-        
-        row:SetText(string.format("|cff888888%2d. [%s]|r %s |cffffffff%s|r%s", 
-            i, timeStr, statusColor, item.name, expireText))
-        row:Show()
-    end
-    
-    DbContent:SetHeight(math.max(1, i * 16))
-    
-    if forceScrollBottom then
-        C_Timer.After(0.01, function()
-            local maxScroll = math.max(0, DbContent:GetHeight() - DbScroll:GetHeight())
-            DbScroll:SetVerticalScroll(maxScroll)
-        end)
-    end
-end
-
-DbCopyBtn:SetScript("OnClick", function()
-    local lines = {}
-    for i, item in ipairs(currentSortedDb) do
-        local status = item.info.isNewbie and "[新兵]" or "[老兵]"
-        -- 复制时同样恢复日期的输出
-        local timeStr = item.time > 0 and date("%m-%d %H:%M:%S", item.time) or "未知时间"
-        local expire = item.info.isNewbie and string.format(" (余%d分)", math.max(0, math.floor((item.info.newbieExpireTime - time())/60))) or ""
-        table.insert(lines, string.format("%d. [%s] %s %s%s", i, timeStr, status, item.name, expire))
-    end
-    if #lines == 0 then table.insert(lines, "无匹配的数据库记录。") end
-    ShowCopyFrame(table.concat(lines, "\n"))
 end)
 
 local function SetupHooks()
@@ -333,5 +334,12 @@ loader:SetScript("OnEvent", SetupHooks)
 
 SLASH_MSD1 = "/msd"
 SlashCmdList["MSD"] = function()
-    if DebugFrame:IsShown() then DebugFrame:Hide() else DebugFrame:Show() end
+    if DebugFrame:IsShown() then 
+        DebugFrame:Hide() 
+    else 
+        DebugFrame:Show()
+        if DebugFrame.DbPage:IsShown() and DebugFrame.UpdateDB then
+            DebugFrame:UpdateDB(true)
+        end
+    end
 end
