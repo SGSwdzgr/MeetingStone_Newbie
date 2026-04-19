@@ -131,7 +131,7 @@ frame:SetScript("OnEvent", function()
                 if isNewbie then
                     tooltip:AddLine(NEWBIE_ICON_STR .. "(" .. elapsedMins .. "分钟前检测)")
                 else
-                    tooltip:AddLine("|cff88888集合石认证老兵|r" )
+                    tooltip:AddLine("|cff888888集合石认证老兵|r" )
                 end
             end
         end)
