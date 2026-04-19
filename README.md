@@ -1,4 +1,4 @@
-[![NGA](https://img.shields.io/badge/NGA-插件研究-590000?style=flat)](https://bbs.nga.cn/read.php?tid=46578826) [![GitHub release](https://img.shields.io/github/v/release/SGSwdzgr/MeetingStone_Newbie?logo=github)](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)
+[![NGA](https://img.shields.io/badge/NGA-插件研究-590000?style=flat)](https://bbs.nga.cn/read.php?tid=46578826) [![新手盒子](https://img.shields.io/badge/新手盒子-新兵增强-93D925?style=flat)](https://www.wclbox.com/games/1/PluginItem/20419?version=2) [![GitHub release](https://img.shields.io/github/v/release/SGSwdzgr/MeetingStone_Newbie?logo=github)](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)
 
 你应该已经知道，雷火在[艾泽拉斯冒险手册](https://wow.blizzard.cn/h5/20260306/winbackiii/#/)活动中有个“向导嘉奖”玩法，它要求你每周至少完成10次“新兵训练”方可领取周奖励宝箱
 
