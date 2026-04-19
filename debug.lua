@@ -1,4 +1,3 @@
-local NEWBIE_ICON = [[|TInterface\AddOns\MeetingStone\Media\Locomotive\Newbie:14:56|t]]
 local logBuffer = {} 
 
 local DebugFrame = CreateFrame("Frame", "MeetingStoneNewbieDebugFrame", UIParent, "BasicFrameTemplateWithInset")
@@ -64,7 +63,7 @@ DbPage:SetAllPoints()
 
 local LogPage = CreateFrame("Frame", nil, DebugFrame)
 LogPage:SetAllPoints()
-LogPage:Hide()
+LogPage:Hide() 
 
 DebugFrame.DbPage = DbPage
 DebugFrame.LogPage = LogPage
@@ -90,7 +89,7 @@ local function CreateTab(id, text)
     return tab
 end
 
-DebugFrame.tab1 = CreateTab(1, "内存数据库")
+DebugFrame.tab1 = CreateTab(1, "已缓存数据")
 DebugFrame.tab2 = CreateTab(2, "实时日志")
 DebugFrame.tab1:SetPoint("TOPLEFT", DebugFrame, "TOPLEFT", 15, -30)
 DebugFrame.tab2:SetPoint("LEFT", DebugFrame.tab1, "RIGHT", 5, 0)
@@ -130,15 +129,55 @@ local DbContent = CreateFrame("Frame", nil, DbScroll)
 DbContent:SetSize(500, 1)
 DbScroll:SetScrollChild(DbContent)
 
-local dbRows = {}
 local currentSortedDb = {}
+local dbRows = {}
+local ROW_HEIGHT = 16
+local VISIBLE_ROWS = 80
+
+for i = 1, VISIBLE_ROWS do
+    local row = DbContent:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
+    row:SetJustifyH("LEFT")
+    row:Hide()
+    dbRows[i] = row
+end
+
+local function RefreshDbView()
+    local offset = DbScroll:GetVerticalScroll()
+    local startIndex = math.max(0, math.floor(offset / ROW_HEIGHT))
+    
+    for i = 1, VISIBLE_ROWS do
+        local dataIndex = startIndex + i
+        local item = currentSortedDb[dataIndex]
+        local row = dbRows[i]
+        
+        if item then
+            local statusColor = item.info.isNewbie and "|cff00ff00[新兵]|r" or "|cff888888[老兵]|r"
+            local timeStr = item.time > 0 and date("%m-%d %H:%M:%S", item.time) or "未知时间"
+            local expireText = ""
+            if item.info.isNewbie and item.info.newbieExpireTime then
+                expireText = string.format(" |cffffaa00(余%d分)|r", math.max(0, math.floor((item.info.newbieExpireTime - time())/60)))
+            end
+            
+            row:SetPoint("TOPLEFT", 5, -(dataIndex - 1) * ROW_HEIGHT)
+            row:SetText(string.format("|cff888888%2d. [%s]|r %s |cffffffff%s|r%s", dataIndex, timeStr, statusColor, item.name, expireText))
+            row:Show()
+        else
+            row:Hide()
+        end
+    end
+end
+
+DbScroll:HookScript("OnVerticalScroll", function() RefreshDbView() end)
 
 function DebugFrame:UpdateDB(forceScrollBottom)
-    for _, row in ipairs(dbRows) do row:Hide() end
     currentSortedDb = {}
     
     local data = MEETINGSTONE_UI_DB and MEETINGSTONE_UI_DB.global and MEETINGSTONE_UI_DB.global.LocomotiveData
-    if not data then return end
+    if not data then 
+        DbContent:SetHeight(1)
+        RefreshDbView()
+        return 
+    end
     
     local query = (DbSearch:GetText() or ""):lower()
     for name, info in pairs(data) do
@@ -156,36 +195,16 @@ function DebugFrame:UpdateDB(forceScrollBottom)
         return a.time < b.time 
     end)
 
-    local i = 0
-    for _, item in ipairs(currentSortedDb) do
-        i = i + 1
-        if not dbRows[i] then
-            dbRows[i] = DbContent:CreateFontString(nil, "ARTWORK", "ChatFontNormal")
-            dbRows[i]:SetJustifyH("LEFT")
-        end
-        
-        local row = dbRows[i]
-        row:SetPoint("TOPLEFT", 5, -(i-1)*16)
-        
-        local statusColor = item.info.isNewbie and "|cff00ff00[新兵]|r" or "|cff888888[老兵]|r"
-        local timeStr = item.time > 0 and date("%m-%d %H:%M:%S", item.time) or "未知时间"
-        local expireText = ""
-        if item.info.isNewbie and item.info.newbieExpireTime then
-            expireText = string.format(" |cffffaa00(余%d分)|r", math.max(0, math.floor((item.info.newbieExpireTime - time())/60)))
-        end
-        
-        row:SetText(string.format("|cff888888%2d. [%s]|r %s |cffffffff%s|r%s", 
-            i, timeStr, statusColor, item.name, expireText))
-        row:Show()
-    end
-    
-    DbContent:SetHeight(math.max(1, i * 16))
+    DbContent:SetHeight(math.max(1, #currentSortedDb * ROW_HEIGHT))
     
     if forceScrollBottom then
         C_Timer.After(0.01, function()
             local maxScroll = math.max(0, DbContent:GetHeight() - DbScroll:GetHeight())
             DbScroll:SetVerticalScroll(maxScroll)
+            RefreshDbView()
         end)
+    else
+        RefreshDbView()
     end
 end
 
