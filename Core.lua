@@ -114,8 +114,9 @@ frame:SetScript("OnEvent", function()
     if TooltipDataProcessor then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip, data)
             if tooltip ~= GameTooltip then return end
-            local _, unit = tooltip:GetUnit()
-            if not unit or type(unit) ~= "string" then return end
+            
+            local ok0, _, unit = pcall(function() return tooltip:GetUnit() end)
+            if not ok0 or not unit or type(unit) ~= "string" then return end
 
             local ok1, isPlayer = pcall(UnitIsPlayer, unit)
             if not ok1 or not isPlayer then return end
@@ -131,7 +132,7 @@ frame:SetScript("OnEvent", function()
                 if isNewbie then
                     tooltip:AddLine(NEWBIE_ICON_STR .. "(" .. elapsedMins .. "分钟前检测)")
                 else
-                    tooltip:AddLine("|cff888888集合石认证老兵|r" )
+                    tooltip:AddLine("|cff888888S1赛季老兵认证|r" )
                 end
             end
         end)

@@ -1,10 +1,10 @@
-## Interface: 120001, 120005
+## Interface: 120005
 
 ## Title: 集合石新兵增强
 ## Notes: 基于网易集合石数据，在集合石队伍列表和鼠标提示中展示向导嘉奖活动的新兵角色信息|n插件无任何额外配置，使用|cFF00FFFF/msd|r可进入调试页面，查看网易集合石返回的原始信息
 
 ## Author: SGSwdzgr(电视卫士)
-## Version: 1.2
+## Version: 1.3
 
 ## IconTexture: interface/icons/newplayerhelp_newcomer
 ## Dependencies: MeetingStone
