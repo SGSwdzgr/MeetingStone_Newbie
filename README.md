@@ -6,9 +6,9 @@
 
 ***
 
-[![NGA](https://img.shields.io/badge/NGA-插件研究-590000?style=flat)](https://bbs.nga.cn/read.php?tid=46578826) [![新手盒子](https://img.shields.io/badge/新手盒子-新兵增强-93D925?style=flat)](https://www.wclbox.com/games/1/PluginItem/20419?version=2) [![GitHub release](https://img.shields.io/github/v/release/SGSwdzgr/MeetingStone_Newbie?logo=github)](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)
+[![CurseForge Downloads](https://img.shields.io/curseforge/dt/1586143?logo=curseforge&label=CurseForge)](https://www.curseforge.com/wow/addons/meetingstone-newbie) [![NGA](https://img.shields.io/badge/NGA-插件研究-590000?style=flat)](https://bbs.nga.cn/read.php?tid=46578826) [![新手盒子](https://img.shields.io/badge/新手盒子-新兵增强-93D925?style=flat)](https://www.wclbox.com/games/1/PluginItem/20419?version=2) [![GitHub release](https://img.shields.io/github/v/release/SGSwdzgr/MeetingStone_Newbie?logo=github)](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)
 
-你应该已经知道，国服在[艾泽拉斯冒险手册](https://wow.blizzard.cn/h5/20260306/winbackiii/#/)活动中有个“向导嘉奖”玩法，它要求你每周至少完成10次“新兵训练”方可领取周奖励宝箱，获取用于抽奖的鱼串和宝箱  
+国服在[艾泽拉斯冒险手册](https://wow.blizzard.cn/h5/20260306/winbackiii/#/)活动中有个“向导嘉奖”玩法，它要求你每周至少完成10次“新兵训练”方可领取周奖励宝箱，获取用于抽奖的鱼串和宝箱  
 但由于“新兵”的判断是战网维度，且暴雪和网易都没有提供官方的API接口来判断玩家是否为新兵，目前只能通过网易官方的[集合石插件](https://www.curseforge.com/wow/addons/meetingstone-netease)来间接识别
 
 <details>
@@ -26,11 +26,11 @@
 <img src="https://github.com/user-attachments/assets/129d195c-2d89-4874-ad6d-ddccb197bf4a" />  
 <img width="381" height="339" alt="image" src="https://github.com/user-attachments/assets/c83deabf-3d1f-406a-9752-1897e55d11f5" />
 
-### 插件安装
+### 安装和使用
 
-可通过[新手盒子](https://www.wclbox.com/games/1/PluginItem/20419?version=2)一键安装和更新维护
+可通过[CurseForge]((https://www.curseforge.com/wow/addons/meetingstone-newbie))或[新手盒子](https://www.wclbox.com/games/1/PluginItem/20419?version=2)一键安装和更新
 
-或通过[Github Releases](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)下载最新版本，将解压后的`MeetingStone_Newbie`文件夹置入`World of Warcraft\_retail_\Interface\AddOns`路径，与`MeetingStone`同级即可
+若需要手动安装，可在[Releases](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)下载最新版本，将解压后的`MeetingStone_Newbie`文件夹置入`World of Warcraft\_retail_\Interface\AddOns`路径，与`MeetingStone`同级即可
 
 插件无开关和配置功能，安装即生效，每次加载后你会看到一条提示信息，代表加载成功
 
