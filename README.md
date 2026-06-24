@@ -1,10 +1,9 @@
-### 置顶提醒
-- 由于集合石插件通信限制，晚间及周四白天高峰时段极有可能看不到新兵标记，这是网易集合石本身数据延迟导致的，本插件无法解决此问题，此时自己开组也看不到新兵信息  
-实在感觉有问题，可以`/msd`看下是否有新兵信息的发包记录。若有，等待网易服务器返回数据即可
-- 如果你的网易集合石显示的全是“未知目标”，看不到别人的队伍，请手动删除Addons路径下的`MeetingStoneEX`模块，这是你之前开心集合石等修改版集合石的补充模块，会有冲突
-- 网易集合石返回的数据并不是必然准确，如果你认为一个人的新兵/老兵数据十分“可疑”，建议使用网易大神的“大米战绩”功能查询其真实10+大秘境次数，并佐以英雄榜成就的“战团导师：至暗之夜”数量来辅助判断（看他有几个满级号）
-
-***
+> [!IMPORTANT]
+> ### 重要提醒
+> - 由于集合石插件通信限制，晚间及周四白天高峰时段极有可能看不到新兵标记，这是网易集合石本身数据延迟导致的，本插件无法解决此问题，此时自己开组也看不到新兵信息  
+> 实在感觉有问题，可以`/msd`看下是否有新兵信息的发包记录。若有，等待网易服务器返回数据即可
+> - 如果你的网易集合石显示的全是“未知目标”，看不到别人的队伍，请手动删除Addons路径下的`MeetingStoneEX`模块，这是你之前开心集合石等修改版集合石的补充模块，会有冲突
+> - 网易集合石返回的数据并不是必然准确，如果你认为一个人的新兵/老兵数据十分“可疑”，建议使用网易大神的“大米战绩”功能查询其真实10+大秘境次数，并佐以英雄榜成就的“战团导师：至暗之夜”数量来辅助判断（看他有几个满级号）
 
 [![CurseForge Downloads](https://img.shields.io/curseforge/dt/1586143?logo=curseforge&label=CurseForge)](https://www.curseforge.com/wow/addons/meetingstone-newbie) [![NGA](https://img.shields.io/badge/NGA-插件研究-590000?style=flat)](https://bbs.nga.cn/read.php?tid=46578826) [![新手盒子](https://img.shields.io/badge/新手盒子-新兵增强-93D925?style=flat)](https://www.wclbox.com/games/1/PluginItem/20419?version=2) [![GitHub release](https://img.shields.io/github/v/release/SGSwdzgr/MeetingStone_Newbie?logo=github)](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)
 
@@ -28,9 +27,9 @@
 
 ### 安装和使用
 
-可通过[CurseForge]((https://www.curseforge.com/wow/addons/meetingstone-newbie))或[新手盒子](https://www.wclbox.com/games/1/PluginItem/20419?version=2)一键安装和更新
+- 可通过[CurseForge](https://www.curseforge.com/wow/addons/meetingstone-newbie)或[新手盒子](https://www.wclbox.com/games/1/PluginItem/20419?version=2)一键安装和更新
 
-若需要手动安装，可在[Releases](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)下载最新版本，将解压后的`MeetingStone_Newbie`文件夹置入`World of Warcraft\_retail_\Interface\AddOns`路径，与`MeetingStone`同级即可
+- 若需要手动安装，可在[Releases](https://github.com/SGSwdzgr/MeetingStone_Newbie/releases)下载最新版本，将解压后的`MeetingStone_Newbie`文件夹置入`World of Warcraft\_retail_\Interface\AddOns`路径，与`MeetingStone`同级即可
 
 插件无开关和配置功能，安装即生效，每次加载后你会看到一条提示信息，代表加载成功
 
