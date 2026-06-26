@@ -50,6 +50,144 @@ local function GetLocomotiveData(fullName)
     return true, isNewbie, elapsedMins
 end
 
+-- ==========================================
+-- 队伍成员身份主动查询和通报
+-- 来源：https://bbs.nga.cn/read.php?tid=47025650
+-- 作者：Khanid
+-- ==========================================
+local announcedMembers = {} 
+local pendingQueries = {}   
+local isQuerying = false
+
+local function GetPartyMemberNames()
+    local members = {}
+    if IsInGroup() and not IsInRaid() then
+        local playerName, playerRealm = UnitName('player')
+        if not playerRealm or playerRealm == '' then playerRealm = GetRealmName() end
+        local playerFullName = playerName .. '-' .. playerRealm
+
+        for i = 1, GetNumGroupMembers() do
+            local name, realm = UnitName('party' .. i)
+            if name then
+                if not realm or realm == '' then realm = GetRealmName() end
+                local fullName = name .. '-' .. realm
+                if fullName ~= playerFullName then
+                    table.insert(members, fullName)
+                end
+            end
+        end
+    end
+    return members
+end
+
+local function ProcessQueryResults(logicModule, round)
+    if #pendingQueries == 0 then
+        isQuerying = false
+        return
+    end
+
+    local stillPending = {}
+    for _, fullName in ipairs(pendingQueries) do
+        local shortName = strsplit("-", fullName)
+        local hasData, isNewbie, elapsedMins = GetLocomotiveData(fullName)
+        
+        if hasData and elapsedMins < 120 then 
+            if isNewbie then
+                if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - %s|cffffff00(%d分钟前检测)|r", shortName, NEWBIE_ICON_STR, elapsedMins))
+                    PlaySound(416, "Master")
+                end
+            else
+                if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - |cff888888S1赛季老兵|r", shortName)) end
+            end
+            announcedMembers[fullName] = true
+        else
+            table.insert(stillPending, fullName)
+        end
+    end
+
+    pendingQueries = stillPending
+
+    if #pendingQueries > 0 then
+        if round >= 45 then
+            for _, fullName in ipairs(pendingQueries) do
+                local shortName = strsplit("-", fullName)
+                print(string.format("  |cffff0000[新兵增强]|r %s 查询超时|r", shortName))
+            end
+            isQuerying = false
+            pendingQueries = {}
+            return
+        end
+
+        if round % 10 == 0 then
+            for _, fullName in ipairs(pendingQueries) do
+                logicModule:InsertServerCQGLIB(fullName)
+            end
+            logicModule:SendServerCQGLIB()
+        end
+        C_Timer.After(1, function() ProcessQueryResults(logicModule, round + 1) end)
+    else
+        isQuerying = false
+    end
+end
+
+local function CheckAndQueryParty()
+    if not IsInGroup() or IsInRaid() then
+        announcedMembers = {} 
+        return
+    end
+
+    local members = GetPartyMemberNames()
+    if #members == 0 then return end
+
+    local MS = LibStub("AceAddon-3.0"):GetAddon("MeetingStone", true)
+    if not MS then return end
+    local logicModule = MS:GetModule("Logic", true)
+    if not logicModule then return end
+
+    local needsTriggerQuery = false
+
+    for _, fullName in ipairs(members) do
+        if not announcedMembers[fullName] then
+            local hasData, isNewbie, elapsedMins = GetLocomotiveData(fullName)
+            local shortName = strsplit("-", fullName)
+            
+            if not hasData or elapsedMins >= 120 then
+                if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - |cffffff00状态未知，正在查询中...|r", shortName)) end
+                table.insert(pendingQueries, fullName)
+                needsTriggerQuery = true
+                announcedMembers[fullName] = "querying" 
+            else
+                if isNewbie then
+                    if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - %s|cffffff00(%d分钟前检测)|r", shortName, NEWBIE_ICON_STR, elapsedMins))
+                        PlaySound(416, "Master")
+                    end
+                else
+                    if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - |cff888888S1赛季老兵|r", shortName)) end
+                end
+                announcedMembers[fullName] = true
+            end
+        end
+    end
+
+    if needsTriggerQuery and not isQuerying then
+        isQuerying = true
+        for _, fullName in ipairs(pendingQueries) do
+            logicModule:InsertServerCQGLIB(fullName)
+        end
+        logicModule:SendServerCQGLIB()
+        C_Timer.After(1, function() ProcessQueryResults(logicModule, 1) end)
+    end
+end
+
+local partyCheckFrame = CreateFrame("Frame")
+partyCheckFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
+partyCheckFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+local rosterUpdateTimer
+partyCheckFrame:SetScript("OnEvent", function()
+    if rosterUpdateTimer then rosterUpdateTimer:Cancel() end
+    rosterUpdateTimer = C_Timer.NewTimer(1, CheckAndQueryParty)
+end)
+
 local frame = CreateFrame("Frame")
 frame:RegisterEvent("PLAYER_LOGIN")
 frame:SetScript("OnEvent", function()
@@ -105,7 +243,7 @@ frame:SetScript("OnEvent", function()
             if isNewbie then
                 tooltip:AddLine("|cff00ff00队长是|r" .. NEWBIE_ICON_STR .. "(" .. elapsedMins .. "分钟前检测)")
             else
-                tooltip:AddLine("|cff888888队长为集合石认证老兵|r" )
+                tooltip:AddLine("|cff888888队长为S1赛季认证老兵|r" )
             end
             tooltip:Show()
         end
@@ -132,12 +270,12 @@ frame:SetScript("OnEvent", function()
                 if isNewbie then
                     tooltip:AddLine(NEWBIE_ICON_STR .. "(" .. elapsedMins .. "分钟前检测)")
                 else
-                    tooltip:AddLine("|cff888888S1赛季老兵认证|r" )
+                    tooltip:AddLine("|cff888888S1赛季认证老兵|r" )
                 end
             end
         end)
     end
 
-    print("|cff00ff00[新兵增强]|r模块已加载。高峰时段看不到新兵标记是网易集合石数据延迟导致的正常情况，本插件无法解决此问题，可 |cffffff00/msd|r 查看新兵信息的原始收发记录，有发包信息即为增强模块工作正常，等待网易服务器返回数据即可")
+    print("|cff00ff00[新兵增强]|r模块已加载。现已支持进队自动查询队内新兵，使用|cffffff00/msd|r可查看集合石返回的原始信息、开关聊天框通报、手动查询特定角色的新兵状态。")
 
 end)

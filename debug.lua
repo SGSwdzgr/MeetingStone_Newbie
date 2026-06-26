@@ -95,6 +95,73 @@ DebugFrame.tab1:SetPoint("TOPLEFT", DebugFrame, "TOPLEFT", 15, -30)
 DebugFrame.tab2:SetPoint("LEFT", DebugFrame.tab1, "RIGHT", 5, 0)
 DebugFrame.tab1:Disable()
 
+if MS_NEWBIE_ANNOUNCE_ENABLED == nil then
+    MS_NEWBIE_ANNOUNCE_ENABLED = true
+end
+
+local AnnounceToggleCB = CreateFrame("CheckButton", "MSNDebugAnnounceToggle", DebugFrame, "UICheckButtonTemplate")
+AnnounceToggleCB:SetSize(24, 24)
+AnnounceToggleCB:SetPoint("BOTTOMLEFT", DebugFrame, "BOTTOMLEFT", 15, 15)
+_G["MSNDebugAnnounceToggleText"]:SetText("在聊天框通报队伍成员身份（仅自己可见）")
+_G["MSNDebugAnnounceToggleText"]:SetFontObject(GameFontNormalSmall)
+AnnounceToggleCB:SetChecked(MS_NEWBIE_ANNOUNCE_ENABLED)
+
+AnnounceToggleCB:SetScript("OnClick", function(self)
+    MS_NEWBIE_ANNOUNCE_ENABLED = self:GetChecked()
+    local stateText = MS_NEWBIE_ANNOUNCE_ENABLED and "|cff00ff00开启|r" or "|cffff0000关闭|r"
+    print("|cff00ff00[新兵增强]|r 进队自动通报已" .. stateText)
+end)
+
+-- ==========================================
+-- 队伍成员身份主动查询和通报
+-- 来源：https://bbs.nga.cn/read.php?tid=47025650
+-- 作者：Khanid
+-- ==========================================
+local ManualQueryLabel = DebugFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+ManualQueryLabel:SetPoint("TOPRIGHT", DebugFrame, "TOPRIGHT", -215, -35)
+ManualQueryLabel:SetText("手动查询:")
+
+local ManualQueryBox = CreateFrame("EditBox", "MSNDebugManualQuery", DebugFrame, "InputBoxTemplate")
+ManualQueryBox:SetSize(120, 20)
+ManualQueryBox:SetPoint("LEFT", ManualQueryLabel, "RIGHT", 10, 0)
+ManualQueryBox:SetAutoFocus(false)
+
+local ManualQueryBtn = CreateFrame("Button", nil, DebugFrame, "UIPanelButtonTemplate")
+ManualQueryBtn:SetSize(50, 22)
+ManualQueryBtn:SetPoint("LEFT", ManualQueryBox, "RIGHT", 5, 0)
+ManualQueryBtn:SetText("发送")
+
+if not MS_PendingManualQueries then MS_PendingManualQueries = {} end
+
+ManualQueryBtn:SetScript("OnClick", function()
+    local name = ManualQueryBox:GetText()
+    name = string.gsub(name, "%s+", "") 
+    
+    if name and name ~= "" then
+        local MS = LibStub("AceAddon-3.0"):GetAddon("MeetingStone", true)
+        if MS then
+            local logicModule = MS:GetModule("Logic", true)
+            if logicModule then
+                if not string.find(name, "-") then
+                    name = name .. "-" .. GetRealmName()
+                    ManualQueryBox:SetText(name) 
+                end
+                
+                MS_PendingManualQueries[name] = true 
+                logicModule:InsertServerCQGLIB(name)
+                logicModule:SendServerCQGLIB()
+                
+                print(string.format("|cff00ff00[新兵增强]|r 正在查询 %s，等待返回...", name))
+                ManualQueryBox:ClearFocus()
+            end
+        end
+    end
+end)
+
+ManualQueryBox:SetScript("OnEnterPressed", function(self)
+    ManualQueryBtn:Click()
+end)
+
 local DbSearch = CreateFrame("EditBox", "MSNDebugDbSearch", DbPage, "SearchBoxTemplate")
 DbSearch:SetPoint("TOPLEFT", 20, -65)
 DbSearch:SetSize(150, 20)
@@ -123,7 +190,7 @@ DbCopyBtn:SetText("复制列表")
 
 local DbScroll = CreateFrame("ScrollFrame", "MeetingStoneNewbieDBScroll", DbPage, "UIPanelScrollFrameTemplate")
 DbScroll:SetPoint("TOPLEFT", 15, -95)
-DbScroll:SetPoint("BOTTOMRIGHT", -35, 15)
+DbScroll:SetPoint("BOTTOMRIGHT", -35, 45)
 
 local DbContent = CreateFrame("Frame", nil, DbScroll)
 DbContent:SetSize(500, 1)
@@ -242,7 +309,7 @@ LogClearBtn:SetText("清空")
 local ScrollFrame = CreateFrame("ScrollingMessageFrame", nil, LogPage)
 ScrollFrame.SetVerticalScroll = function() end 
 ScrollFrame:SetPoint("TOPLEFT", 15, -95)
-ScrollFrame:SetPoint("BOTTOMRIGHT", -30, 15)
+ScrollFrame:SetPoint("BOTTOMRIGHT", -30, 45)
 ScrollFrame:SetFontObject(ChatFontNormal)
 ScrollFrame:SetJustifyH("LEFT")
 ScrollFrame:SetMaxLines(2000)
@@ -338,10 +405,23 @@ local function SetupHooks()
         end
     end)
 
+    local NEWBIE_ICON_STR = [[|TInterface\AddOns\MeetingStone\Media\Locomotive\Newbie:16:64|t]]
+
     hooksecurefunc(Logic, "SQGLIB", function(self, event, maps)
         Log("recv", "<< [收包] 收到服务器数据", 0, 1, 0)
         for name, d in pairs(maps) do
             if d.n == 1 then Log("recv", "   确认新兵: " .. name, 0, 1, 0) end
+            
+            if MS_PendingManualQueries and MS_PendingManualQueries[name] then
+                local shortName = strsplit("-", name)
+                if d.n == 1 then
+                    print(string.format("|cff00ff00[查询结果]|r %s - %s", shortName, NEWBIE_ICON_STR))
+                    PlaySound(416, "Master")
+                else
+                    print(string.format("|cff00ff00[查询结果]|r %s - |cff888888S1赛季老兵|r", shortName))
+                end
+                MS_PendingManualQueries[name] = nil 
+            end
         end
         if DebugFrame.DbPage:IsShown() then DebugFrame:UpdateDB(true) end
     end)
