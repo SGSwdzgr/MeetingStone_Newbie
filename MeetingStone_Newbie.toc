@@ -4,7 +4,7 @@
 ## Notes: 基于网易集合石，在鼠标提示、集合石列表页展示向导嘉奖活动的大秘境新兵角色标签|n现已支持进队自动查询队内新兵，使用|cffffff00/msd|r可进入调试页面，查看网易集合石返回的原始信息、开关聊天框通报、手动查询特定角色的新兵状态
 
 ## Author: SGSwdzgr(电视卫士)
-## Version: 1.5
+## Version: 1.6
 
 ## IconTexture: interface/icons/newplayerhelp_newcomer
 ## Dependencies: MeetingStone

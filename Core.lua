@@ -20,9 +20,10 @@ StaticPopupDialogs["MS_NEWBIE_RADAR_CONFLICT"] = {
 local conflictChecker = CreateFrame("Frame")
 conflictChecker:RegisterEvent("PLAYER_LOGIN")
 conflictChecker:SetScript("OnEvent", function()
-    local isLoaded = C_AddOns and C_AddOns.IsAddOnLoaded and C_AddOns.IsAddOnLoaded(EX_ADDON_NAME)
-    
-    if name and reason ~= "MISSING" then
+    local name, _, _, _, reason = C_AddOns.GetAddOnInfo(EX_ADDON_NAME)
+    local isLoaded = C_AddOns.IsAddOnLoaded(EX_ADDON_NAME)
+
+    if isLoaded or (name and reason ~= "MISSING") then
         C_Timer.After(1.5, function()
             StaticPopup_Show("MS_NEWBIE_RADAR_CONFLICT")
             print("|cffff0000[新兵增强] 警告：检测到不兼容的 MeetingStoneEX 模块，请务必手动删除并重载界面！|r")
@@ -94,6 +95,8 @@ local function ProcessQueryResults(logicModule, round)
         if hasData and elapsedMins < 120 then 
             if isNewbie then
                 if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - %s|cffffff00(%d分钟前检测)|r", shortName, NEWBIE_ICON_STR, elapsedMins))
+                end
+                if MS_NEWBIE_SOUND_ENABLED ~= false then
                     PlaySound(416, "Master")
                 end
             else
@@ -136,6 +139,34 @@ local function CheckAndQueryParty()
         return
     end
 
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        return
+    end
+
+    local _, instanceType, difficultyID = GetInstanceInfo()
+    
+    if instanceType == "scenario" or instanceType == "arena" or instanceType == "pvp" then
+        return
+    end
+
+    local excludedDifficulties = {
+        [1]  = false, -- 普通
+        [2]  = false, -- 英雄
+        [8]  = false, -- 史诗钥石
+        [19]  = true, -- 事件
+        [23]  = false, -- 史诗
+        [24]  = true, -- 时空漫游
+        [150] = true, -- 普通调整（1-5）
+        [205] = true, -- 追随者
+        [216] = true, -- 任务
+        [232] = true, -- 游学探奇
+        [236] = true, -- 事件
+    }
+    
+    if excludedDifficulties[difficultyID] then
+        return
+    end
+
     local members = GetPartyMemberNames()
     if #members == 0 then return end
 
@@ -158,7 +189,10 @@ local function CheckAndQueryParty()
                 announcedMembers[fullName] = "querying" 
             else
                 if isNewbie then
-                    if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then print(string.format("|cff00ff00[新兵增强]|r %s - %s|cffffff00(%d分钟前检测)|r", shortName, NEWBIE_ICON_STR, elapsedMins))
+                    if MS_NEWBIE_ANNOUNCE_ENABLED ~= false then 
+                        print(string.format("|cff00ff00[新兵增强]|r %s - %s|cffffff00(%d分钟前检测)|r", shortName, NEWBIE_ICON_STR, elapsedMins))
+                    end
+                    if MS_NEWBIE_SOUND_ENABLED ~= false then
                         PlaySound(416, "Master")
                     end
                 else

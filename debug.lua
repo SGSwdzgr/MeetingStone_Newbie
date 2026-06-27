@@ -112,6 +112,23 @@ AnnounceToggleCB:SetScript("OnClick", function(self)
     print("|cff00ff00[新兵增强]|r 进队自动通报已" .. stateText)
 end)
 
+if MS_NEWBIE_SOUND_ENABLED == nil then
+    MS_NEWBIE_SOUND_ENABLED = true
+end
+
+local SoundToggleCB = CreateFrame("CheckButton", "MSNDebugSoundToggle", DebugFrame, "UICheckButtonTemplate")
+SoundToggleCB:SetSize(24, 24)
+SoundToggleCB:SetPoint("LEFT", _G["MSNDebugAnnounceToggleText"], "RIGHT", 15, 0)
+_G["MSNDebugSoundToggleText"]:SetText("播放新兵提示音")
+_G["MSNDebugSoundToggleText"]:SetFontObject(GameFontNormalSmall)
+SoundToggleCB:SetChecked(MS_NEWBIE_SOUND_ENABLED)
+
+SoundToggleCB:SetScript("OnClick", function(self)
+    MS_NEWBIE_SOUND_ENABLED = self:GetChecked()
+    local stateText = MS_NEWBIE_SOUND_ENABLED and "|cff00ff00开启|r" or "|cffff0000关闭|r"
+    print("|cff00ff00[新兵增强]|r 新兵提示音已" .. stateText)
+end)
+
 -- ==========================================
 -- 队伍成员身份主动查询和通报
 -- 来源：https://bbs.nga.cn/read.php?tid=47025650
@@ -187,6 +204,31 @@ local DbCopyBtn = CreateFrame("Button", nil, DbPage, "UIPanelButtonTemplate")
 DbCopyBtn:SetSize(80, 22)
 DbCopyBtn:SetPoint("TOPRIGHT", -30, -65)
 DbCopyBtn:SetText("复制列表")
+
+StaticPopupDialogs["MS_NEWBIE_RESET_CACHE"] = {
+    text = "|cffff0000【清空集合石角色缓存】|r\n\n确定要删除所有已记录的角色数据吗？\n清空后下次遇到相关玩家将重新向集合石服务器请求数据。",
+    button1 = "确定清除",
+    button2 = "取消",
+    OnAccept = function()
+        if MEETINGSTONE_UI_DB and MEETINGSTONE_UI_DB.global then
+            MEETINGSTONE_UI_DB.global.LocomotiveData = {}
+            print("|cff00ff00[新兵增强]|r 集合石角色缓存已全部清空")
+            if DebugFrame.UpdateDB then DebugFrame:UpdateDB(true) end
+        end
+    end,
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    preferredIndex = 3,
+}
+
+local DbResetBtn = CreateFrame("Button", nil, DbPage, "UIPanelButtonTemplate")
+DbResetBtn:SetSize(80, 22)
+DbResetBtn:SetPoint("RIGHT", DbCopyBtn, "LEFT", -5, 0)
+DbResetBtn:SetText("清空缓存")
+DbResetBtn:SetScript("OnClick", function()
+    StaticPopup_Show("MS_NEWBIE_RESET_CACHE")
+end)
 
 local DbScroll = CreateFrame("ScrollFrame", "MeetingStoneNewbieDBScroll", DbPage, "UIPanelScrollFrameTemplate")
 DbScroll:SetPoint("TOPLEFT", 15, -95)
@@ -416,7 +458,9 @@ local function SetupHooks()
                 local shortName = strsplit("-", name)
                 if d.n == 1 then
                     print(string.format("|cff00ff00[查询结果]|r %s - %s", shortName, NEWBIE_ICON_STR))
-                    PlaySound(416, "Master")
+                    if MS_NEWBIE_SOUND_ENABLED ~= false then
+                        PlaySound(416, "Master")
+                    end
                 else
                     print(string.format("|cff00ff00[查询结果]|r %s - |cff888888S1赛季老兵|r", shortName))
                 end
